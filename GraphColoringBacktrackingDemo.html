@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>实验三：回溯法求解图着色问题</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface2: #1a2332;
+      --border: #1e3a5f;
+      --border2: #2d4a6f;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --accent: #3b82f6;
+      --accent2: #60a5fa;
+      --green: #22c55e;
+      --green2: #4ade80;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --purple: #a855f7;
+      --cyan: #06b6d4;
+      --yellow: #eab308;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+      line-height: 1.6;
+    }
+    ::selection { background: rgba(59,130,246,0.3); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(11,17,32,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; height: 52px;
+    }
+    .top-nav .logo {
+      font-size: 15px; font-weight: 700; color: var(--accent2);
+      margin-right: 32px; white-space: nowrap;
+    }
+    .nav-links { display: flex; gap: 4px; overflow-x: auto; }
+    .nav-links a {
+      color: var(--text2); text-decoration: none; font-size: 13px;
+      padding: 6px 14px; border-radius: 6px; white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--accent2); background: rgba(59,130,246,0.1);
+    }
+
+    .hero {
+      text-align: center; padding: 120px 24px 62px;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.10) 0%, transparent 58%),
+        radial-gradient(ellipse at 20% 20%, rgba(168,85,247,0.08) 0%, transparent 34%);
+    }
+    .hero h1 {
+      font-size: 36px; font-weight: 800;
+      background: linear-gradient(135deg, #e2e8f0, #60a5fa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .hero .meta { color: var(--text3); font-size: 14px; margin-bottom: 24px; }
+    .hero .tags { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .tag {
+      padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border);
+      background: rgba(30,58,95,0.30);
+      color: var(--text2);
+    }
+
+    .section {
+      max-width: 1160px; margin: 0 auto; padding: 80px 24px 40px;
+    }
+    .section-title {
+      font-size: 26px; font-weight: 700; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-title .num {
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      color: white; width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; flex-shrink: 0;
+    }
+    .section-subtitle {
+      color: var(--text2); font-size: 15px; margin-bottom: 28px;
+      padding-left: 48px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      font-size: 16px; font-weight: 600; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .flex-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .flex-row > * { flex: 1; min-width: 320px; }
+
+    .mode-switch {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .mode-btn {
+      padding: 10px 18px; border-radius: 8px; border: 2px solid var(--border);
+      background: var(--surface); color: var(--text2);
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: all 0.25s; font-family: inherit;
+    }
+    .mode-btn:hover { transform: translateY(-1px); border-color: var(--accent); color: var(--accent2); }
+    .mode-btn.active-fixed { border-color: var(--red); background: rgba(239,68,68,0.15); color: #fca5a5; box-shadow: 0 0 20px rgba(239,68,68,0.08); }
+    .mode-btn.active-degree { border-color: var(--purple); background: rgba(168,85,247,0.15); color: #d8b4fe; box-shadow: 0 0 20px rgba(168,85,247,0.08); }
+    .mode-btn.active-mrv { border-color: var(--green); background: rgba(34,197,94,0.15); color: #86efac; box-shadow: 0 0 20px rgba(34,197,94,0.08); }
+    .mode-btn.active-combo { border-color: var(--cyan); background: rgba(6,182,212,0.15); color: #67e8f9; box-shadow: 0 0 20px rgba(6,182,212,0.08); }
+
+    .demo-controls {
+      display: flex; justify-content: center; align-items: center;
+      gap: 10px; margin-top: 16px; flex-wrap: wrap;
+    }
+    .demo-btn {
+      padding: 8px 18px; border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text2);
+      font-size: 13px; cursor: pointer; transition: all 0.2s;
+      font-family: inherit;
+    }
+    .demo-btn:hover:not(:disabled) {
+      border-color: var(--accent); color: var(--accent2);
+      background: rgba(59,130,246,0.1);
+    }
+    .demo-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .demo-btn.primary { background: rgba(59,130,246,0.15); border-color: var(--accent); color: var(--accent2); min-width: 110px; }
+    .demo-btn.danger { background: rgba(239,68,68,0.15); border-color: var(--red); color: #fca5a5; }
+
+    .progress-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; flex: 1; }
+    .progress-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.35s ease;
+    }
+    .phase-badge {
+      padding: 3px 12px; border-radius: 12px; font-size: 11px;
+      font-weight: 700; display: inline-block; white-space: nowrap;
+    }
+
+    .code-panel {
+      background: var(--bg); border-radius: 10px;
+      border: 1px solid var(--border);
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px; line-height: 21px;
+      overflow: auto; max-height: 430px;
+    }
+    .code-panel-header {
+      padding: 8px 14px; border-bottom: 1px solid var(--border);
+      color: var(--text3); font-size: 11px; font-family: inherit;
+      display: flex; align-items: center; gap: 8px;
+      position: sticky; top: 0; background: var(--bg); z-index: 2;
+    }
+    .dot-row { display: flex; gap: 5px; }
+    .wdot { width: 10px; height: 10px; border-radius: 50%; }
+    .code-line {
+      padding: 1px 14px 1px 8px; display: flex;
+      transition: background 0.25s, border-color 0.25s;
+      border-left: 3px solid transparent;
+    }
+    .code-line.hl { background: rgba(59,130,246,0.15); border-left-color: var(--accent); }
+    .code-line .ln {
+      color: var(--text3); width: 28px; text-align: right;
+      margin-right: 14px; user-select: none; flex-shrink: 0;
+    }
+    .code-line .ct { white-space: pre; }
+    .code-line.hl .ct { color: #f1f5f9; }
+    .code-line:not(.hl) .ct { color: #4b5e7e; }
+
+    .info-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; margin-top: 12px;
+    }
+    .call-stack {
+      background: var(--bg); border-radius: 6px; padding: 8px 12px;
+      margin-top: 8px; font-family: 'Consolas', monospace;
+      font-size: 12px; color: var(--accent2);
+      max-height: 118px; overflow: auto;
+    }
+    .small { color: var(--text2); font-size: 13px; line-height: 24px; }
+    .muted { color: var(--text3); }
+    .metric-grid {
+      display: grid; grid-template-columns: repeat(4, minmax(115px, 1fr));
+      gap: 10px; margin: 12px 0;
+    }
+    .metric {
+      background: rgba(11,17,32,0.68); border: 1px solid rgba(30,58,95,0.9);
+      border-radius: 10px; padding: 10px 12px;
+    }
+    .metric .label { color: var(--text3); font-size: 11px; }
+    .metric .value { font-size: 20px; font-weight: 800; margin-top: 2px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th {
+      background: var(--surface2); color: var(--accent2);
+      padding: 10px 14px; text-align: left; font-weight: 600;
+      border-bottom: 2px solid var(--border);
+    }
+    .data-table td {
+      padding: 9px 14px; border-bottom: 1px solid rgba(30,58,95,0.4);
+      color: var(--text2);
+    }
+    .data-table tr:hover td { background: rgba(59,130,246,0.04); }
+    .pill {
+      display: inline-flex; align-items:center; gap: 6px;
+      padding: 3px 9px; border-radius: 999px; font-size: 11px;
+      border: 1px solid var(--border); color: var(--text2); background: rgba(30,58,95,0.25);
+      margin-right: 5px; margin-bottom: 5px;
+    }
+    .domain-row { display: grid; grid-template-columns: 44px 1fr; gap: 8px; align-items: center; margin-bottom: 7px; }
+    .chip {
+      display: inline-block; width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.35); margin-right: 4px; vertical-align: middle;
+    }
+    .chip.smallchip { width: 13px; height: 13px; border-width: 1px; }
+    .legend-line { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; color: var(--text2); font-size: 12px; margin-top: 10px; }
+    .bar-shell {
+      height: 10px; background: var(--surface2); border-radius: 99px; overflow: hidden; border: 1px solid rgba(30,58,95,0.5);
+    }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width .35s; }
+    [id] { scroll-margin-top: 64px; }
+
+    @media (max-width: 760px) {
+      .hero h1 { font-size: 25px; }
+      .section-title { font-size: 20px; }
+      .section-subtitle { padding-left: 0; }
+      .top-nav .logo { display: none; }
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+/* ========== 图数据：8 个地区 + K4 子图，至少需要 4 种颜色 ========== */
+const COLORS = [
+  { id:0, name:'红', css:'#ef4444', soft:'rgba(239,68,68,0.15)' },
+  { id:1, name:'蓝', css:'#3b82f6', soft:'rgba(59,130,246,0.15)' },
+  { id:2, name:'绿', css:'#22c55e', soft:'rgba(34,197,94,0.15)' },
+  { id:3, name:'黄', css:'#eab308', soft:'rgba(234,179,8,0.16)' },
+];
+
+const VERTICES = [
+  { id:0, name:'A', x:225, y:72  },
+  { id:1, name:'B', x:358, y:135 },
+  { id:2, name:'C', x:314, y:265 },
+  { id:3, name:'D', x:126, y:230 },
+  { id:4, name:'E', x:88,  y:112 },
+  { id:5, name:'F', x:206, y:342 },
+  { id:6, name:'G', x:420, y:318 },
+  { id:7, name:'H', x:430, y:70  },
+];
+
+const EDGES = [
+  [0,1],[0,2],[0,3],[1,2],[1,3],[2,3], // K4：A,B,C,D
+  [0,4],[1,4],[2,4],
+  [0,5],[1,5],[3,5],
+  [0,6],[2,6],[3,6],
+  [1,7],[2,7],[3,7],
+  [4,5],[5,6],[6,7],[7,4]
+];
+
+const ADJ = (() => {
+  const arr = Array.from({length: VERTICES.length}, () => []);
+  EDGES.forEach(([a,b]) => { arr[a].push(b); arr[b].push(a); });
+  return arr;
+})();
+
+const STRATEGIES = {
+  fixed: {
+    key:'fixed',
+    name:'普通回溯',
+    short:'普通回溯',
+    accent:'#ef4444',
+    className:'active-fixed',
+    file:'strategy_basic_backtracking.cpp',
+    desc:'按固定顶点顺序 E→G→F→H→A→B→C→D 搜索。每次给顶点试 4 种颜色，只用 isSafe 检查已染色邻接点是否冲突。',
+    order:[4,6,5,7,0,1,2,3],
+    mode:'fixed',
+  },
+  degree: {
+    key:'degree',
+    name:'度启发式',
+    short:'度启发式',
+    accent:'#a855f7',
+    className:'active-degree',
+    file:'strategy_degree_heuristic.cpp',
+    desc:'先给度数最高、约束最多的顶点染色。这里使用静态度数排序，尽早处理 A、B、C、D 这类高约束顶点。',
+    order:[0,1,2,3,4,5,6,7],
+    mode:'degree',
+  },
+  mrv: {
+    key:'mrv',
+    name:'最少剩余值优先（MRV）',
+    short:'MRV',
+    accent:'#22c55e',
+    className:'active-mrv',
+    file:'strategy_mrv.cpp',
+    desc:'每一步动态计算未染色顶点的合法颜色数，优先选择剩余颜色最少的顶点，把最可能失败的点提前处理。',
+    order:[4,6,5,7,0,1,2,3],
+    mode:'mrv',
+  },
+  combo: {
+    key:'combo',
+    name:'组合优化（MRV + 度启发式）',
+    short:'MRV + 度',
+    accent:'#06b6d4',
+    className:'active-combo',
+    file:'strategy_mrv_degree.cpp',
+    desc:'先按 MRV 选择颜色域最小的顶点；若多个顶点并列，则选择度数更高的顶点，兼顾动态约束和结构约束。',
+    order:[0,1,2,3,4,5,6,7],
+    mode:'combo',
+  },
+};
+
+const CODE = {
+  fixed: [
+    `bool basicBacktrack(int depth) {`,
+    `    if (depth == n) return true;`,
+    `    int v = fixedOrder[depth];`,
+    `    for (int c = 0; c < 4; c++) {`,
+    `        if (!isSafe(v, c))`,
+    `            continue;          // 普通冲突剪枝`,
+    `        color[v] = c;          // 选择`,
+    `        if (basicBacktrack(depth + 1)) return true;`,
+    `        color[v] = -1;         // 撤销`,
+    `    }`,
+    `    return false;`,
+    `}`,
+  ],
+  degree: [
+    `bool degreeBacktrack(int depth) {`,
+    `    if (depth == n) return true;`,
+    `    int v = degreeOrder[depth];`,
+    `    // degreeOrder: 按顶点度数从大到小排序`,
+    `    for (int c = 0; c < 4; c++) {`,
+    `        if (!isSafe(v, c))`,
+    `            continue;          // 冲突剪枝`,
+    `        color[v] = c;          // 先染高约束顶点`,
+    `        if (degreeBacktrack(depth + 1)) return true;`,
+    `        color[v] = -1;`,
+    `    }`,
+    `    return false;`,
+    `}`,
+  ],
+  mrv: [
+    `bool mrvBacktrack() {`,
+    `    if (allColored()) return true;`,
+    `    int v = selectMRV();`,
+    `    // 选择合法颜色数最少的未染色顶点`,
+    `    for (int c : legalColors(v)) {`,
+    `        if (!isSafe(v, c)) continue;`,
+    `        color[v] = c;`,
+    `        if (mrvBacktrack()) return true;`,
+    `        color[v] = -1;`,
+    `    }`,
+    `    return false;`,
+    `}`,
+  ],
+  combo: [
+    `bool comboBacktrack() {`,
+    `    if (allColored()) return true;`,
+    `    int v = selectMRVThenDegree();`,
+    `    // MRV 并列时，优先选择度数更大的顶点`,
+    `    for (int c : legalColors(v)) {`,
+    `        if (!isSafe(v, c))`,
+    `            continue;          // 冲突剪枝`,
+    `        color[v] = c;`,
+    `        if (comboBacktrack()) return true;`,
+    `        color[v] = -1;`,
+    `    }`,
+    `    return false;`,
+    `}`,
+  ],
+};
+
+const DEFAULT_STATE = {
+  colors: Array(VERTICES.length).fill(-1),
+  domains: Array.from({length: VERTICES.length}, () => [0,1,2,3]),
+  current: null,
+  trialColor: null,
+  conflictEdge: null,
+  removed: [],
+  stack: [],
+  hl: [0],
+  title: '准备开始',
+  desc: '选择一种剪枝策略，点击播放或下一步，观察“代码行高亮 + 图形状态 + 颜色域变化”。',
+  phase: 'init',
+  stats: { calls:0, tries:0, conflictPrunes:0, domainPrunes:0, backtracks:0 },
+};
+
+/* ========== 求解与步骤生成 ========== */
+function cloneDomains(domains) {
+  return domains.map(d => [...d]);
+}
+
+function degreeOrder() {
+  return [...Array(VERTICES.length).keys()].sort((a,b) => ADJ[b].length - ADJ[a].length || a-b);
+}
+
+function fixedTieIndex(strategy, v) {
+  const idx = strategy.order.indexOf(v);
+  return idx === -1 ? v : idx;
+}
+
+function computeDomains(colors) {
+  return VERTICES.map(v => {
+    if (colors[v.id] !== -1) return [colors[v.id]];
+    const banned = new Set();
+    for (const u of ADJ[v.id]) if (colors[u] !== -1) banned.add(colors[u]);
+    return COLORS.map(c => c.id).filter(c => !banned.has(c));
+  });
+}
+
+function isSafe(colors, v, c) {
+  for (const u of ADJ[v]) if (colors[u] === c) return false;
+  return true;
+}
+
+function conflictNeighbor(colors, v, c) {
+  for (const u of ADJ[v]) if (colors[u] === c) return u;
+  return null;
+}
+
+function legalDomain(colors, v) {
+  return computeDomains(colors)[v];
+}
+
+function makeStep(strategy, base, patch) {
+  const stats = Object.assign({}, base.stats);
+  return Object.assign({
+    colors: [...base.colors],
+    domains: cloneDomains(base.domains),
+    current: null,
+    trialColor: null,
+    conflictEdge: null,
+    removed: [],
+    stack: [...base.stack],
+    hl: [0],
+    phase: 'check',
+    title: '',
+    desc: '',
+    stats,
+    strategy: strategy.key,
+  }, patch || {});
+}
+
+function getStaticOrder(strategy) {
+  if (strategy.mode === 'degree' || strategy.mode === 'combo') return degreeOrder();
+  return [...strategy.order];
+}
+
+function codeHL(mode, phase) {
+  const table = {
+    fixed:  { call:[0,1], select:[2], try:[3,4], prune:[4,5], assign:[6,7], backtrack:[8], fail:[10], done:[1] },
+    degree: { call:[0,1], select:[2,3], try:[4,5], prune:[5,6], assign:[7,8], backtrack:[9], fail:[11], done:[1] },
+    mrv:    { call:[0,1], select:[2,3], try:[4,5], prune:[5], assign:[6,7], backtrack:[8], fail:[10], done:[1] },
+    combo:  { call:[0,1], select:[2,3], try:[4,5], prune:[5,6], assign:[7,8], backtrack:[9], fail:[11], done:[1] },
+  };
+  return (table[mode] && table[mode][phase]) || [0];
+}
+
+function solveWithSteps(strategy) {
+  const n = VERTICES.length;
+  const colors = Array(n).fill(-1);
+  const order = getStaticOrder(strategy);
+  const stats = { calls:0, tries:0, conflictPrunes:0, domainPrunes:0, backtracks:0 };
+  const steps = [];
+  let found = false;
+  let maxVisualSteps = 900;
+
+  const baseState = () => ({ colors:[...colors], domains:computeDomains(colors), stack:[], stats:Object.assign({}, stats) });
+
+  function push(patch) {
+    if (steps.length >= maxVisualSteps) return;
+    steps.push(makeStep(strategy, baseState(), patch));
+  }
+
+  push({
+    phase:'init',
+    hl:[0],
+    title:`初始化：${strategy.name}`,
+    desc:`4 种颜色：红、蓝、绿、黄。顶点选择策略：${strategy.name}。当前参考顺序：${order.map(i=>VERTICES[i].name).join(' → ')}。`,
+    stack:[`${strategy.short}：start`],
+  });
+
+  function allColored() { return colors.every(c => c !== -1); }
+
+  function selectVertex(depth) {
+    const uncolored = [...Array(n).keys()].filter(i => colors[i] === -1);
+    if (strategy.mode === 'fixed' || strategy.mode === 'degree') {
+      return order.find(v => colors[v] === -1);
+    }
+    if (strategy.mode === 'mrv') {
+      uncolored.sort((a,b) => legalDomain(colors, a).length - legalDomain(colors, b).length || fixedTieIndex(strategy, a) - fixedTieIndex(strategy, b));
+      return uncolored[0];
+    }
+    // 组合优化：MRV 优先，MRV 并列时用度启发式打破平局
+    uncolored.sort((a,b) => legalDomain(colors, a).length - legalDomain(colors, b).length || ADJ[b].length - ADJ[a].length || a - b);
+    return uncolored[0];
+  }
+
+  function removedByAssignment(beforeDomains, afterDomains, v, c) {
+    return ADJ[v]
+      .filter(u => colors[u] === -1 && beforeDomains[u].includes(c) && !afterDomains[u].includes(c))
+      .map(u => ({ v:u, old:beforeDomains[u], removed:c }));
+  }
+
+  function dfs(depth) {
+    stats.calls++;
+    push({
+      phase:'call',
+      hl: codeHL(strategy.mode, 'call'),
+      title:`进入递归层 depth=${depth}`,
+      desc:`当前已染色 ${colors.filter(c=>c!==-1).length}/${n} 个顶点。`,
+      stack:[`dfs(depth=${depth})`, `calls=${stats.calls}`],
+    });
+
+    if (allColored()) {
+      found = true;
+      push({
+        phase:'done',
+        hl: codeHL(strategy.mode, 'done'),
+        title:'找到合法 4 着色 ✓',
+        desc:'所有相邻顶点颜色均不同，搜索结束。',
+        stack:['return true', `solution = ${colors.map((c,i)=>VERTICES[i].name+COLORS[c].name).join(', ')}`],
+      });
+      return true;
+    }
+
+    const v = selectVertex(depth);
+    const domainList = legalDomain(colors, v);
+    const selectDesc = strategy.mode === 'fixed'
+      ? `普通回溯按固定顺序选择未染色顶点 ${VERTICES[v].name}。`
+      : strategy.mode === 'degree'
+        ? `度启发式按度数从高到低选择顶点，本步选择 ${VERTICES[v].name}（deg=${ADJ[v].length}）。`
+        : strategy.mode === 'mrv'
+          ? `MRV 选择剩余合法颜色最少的顶点 ${VERTICES[v].name}，候选颜色：${domainList.map(c=>COLORS[c].name).join('、') || '空'}。`
+          : `组合优化先看 MRV，再用度数打破平局；本步选择 ${VERTICES[v].name}（剩余 ${domainList.length} 色，deg=${ADJ[v].length}）。`;
+
+    push({
+      phase:'select',
+      current:v,
+      hl: codeHL(strategy.mode, 'select'),
+      title:`选择顶点 ${VERTICES[v].name}`,
+      desc: selectDesc,
+      stack:[`select v = ${VERTICES[v].name}`, `domain = {${domainList.map(c=>COLORS[c].name).join(', ') || '空'}}`],
+    });
+
+    const colorCandidates = (strategy.mode === 'mrv' || strategy.mode === 'combo') ? domainList : [0,1,2,3];
+    for (const c of colorCandidates) {
+      stats.tries++;
+      push({
+        phase:'try',
+        current:v,
+        trialColor:c,
+        hl: codeHL(strategy.mode, 'try'),
+        title:`尝试给 ${VERTICES[v].name} 染成 ${COLORS[c].name}色`,
+        desc:`第 ${stats.tries} 次颜色尝试。先检查是否与已染色邻接点冲突。`,
+        stack:[`try ${VERTICES[v].name} = ${COLORS[c].name}`, `tries=${stats.tries}`],
+      });
+
+      const conflict = conflictNeighbor(colors, v, c);
+      if (conflict !== null) {
+        stats.conflictPrunes++;
+        push({
+          phase:'prune',
+          current:v,
+          trialColor:c,
+          conflictEdge:[v, conflict],
+          hl: codeHL(strategy.mode, 'prune'),
+          title:`冲突剪枝：${VERTICES[v].name} 不能用 ${COLORS[c].name}色`,
+          desc:`邻接点 ${VERTICES[conflict].name} 已经是 ${COLORS[c].name}色，所以该分支立即跳过。`,
+          stack:[`conflict: ${VERTICES[v].name}-${VERTICES[conflict].name}`, `conflictPrunes=${stats.conflictPrunes}`],
+        });
+        continue;
+      }
+
+      const beforeDomains = computeDomains(colors);
+      colors[v] = c;
+      const afterDomains = computeDomains(colors);
+      const removed = removedByAssignment(beforeDomains, afterDomains, v, c);
+      push({
+        phase:'assign',
+        current:v,
+        trialColor:c,
+        removed,
+        hl: codeHL(strategy.mode, 'assign'),
+        title:`选择成功：${VERTICES[v].name} = ${COLORS[c].name}色`,
+        desc: removed.length
+          ? `当前颜色合法。由于 ${VERTICES[v].name} 已使用 ${COLORS[c].name}色，其未染色邻居的对应颜色会从候选域中消失。`
+          : '当前颜色与所有已染色邻接点都不冲突，进入下一层递归。',
+        stack:[`color[${VERTICES[v].name}] = ${COLORS[c].name}`, `depth -> ${depth + 1}`],
+      });
+
+      if (dfs(depth + 1)) return true;
+
+      colors[v] = -1;
+      stats.backtracks++;
+      push({
+        phase:'backtrack',
+        current:v,
+        trialColor:c,
+        hl: codeHL(strategy.mode, 'backtrack'),
+        title:`回溯：撤销 ${VERTICES[v].name} 的 ${COLORS[c].name}色`,
+        desc:'递归未能得到完整合法解，撤销当前选择，尝试下一个颜色。',
+        stack:[`undo ${VERTICES[v].name}=${COLORS[c].name}`, `backtracks=${stats.backtracks}`],
+      });
+    }
+
+    push({
+      phase:'fail',
+      current:v,
+      hl: codeHL(strategy.mode, 'fail'),
+      title:`顶点 ${VERTICES[v].name} 的候选颜色均失败`,
+      desc:'返回上一层递归继续回溯。',
+      stack:[`return false at ${VERTICES[v].name}`],
+    });
+    return false;
+  }
+
+  dfs(0);
+
+  if (!found) {
+    push({
+      phase:'fail',
+      hl:[0],
+      title:'未找到 4 着色',
+      desc:'该图在当前颜色数下不可着色。',
+      stack:['return false'],
+    });
+  }
+
+  return {
+    steps,
+    finalStats: Object.assign({}, stats),
+    order,
+    solution: [...colors],
+  };
+}
+
+const SOLVERS = {};
+Object.keys(STRATEGIES).forEach(k => { SOLVERS[k] = solveWithSteps(STRATEGIES[k]); });
+
+/* ========== UI 组件 ========== */
+function CodePanel({ code, hl, label }) {
+  return (
+    <div className="code-panel">
+      <div className="code-panel-header">
+        <span className="dot-row">
+          <span className="wdot" style={{background:'#ef4444'}}/>
+          <span className="wdot" style={{background:'#f59e0b'}}/>
+          <span className="wdot" style={{background:'#22c55e'}}/>
+        </span>
+        <span>{label}</span>
+      </div>
+      <div style={{padding:'6px 0'}}>
+        {code.map((line,i)=>(
+          <div key={i} className={`code-line${hl.includes(i)?' hl':''}`}>
+            <span className="ln">{i+1}</span>
+            <span className="ct">{line}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ColorLegend() {
+  return (
+    <div className="legend-line">
+      {COLORS.map(c => <span key={c.id}><span className="chip smallchip" style={{background:c.css}}/> {c.name}色</span>)}
+      <span className="muted">灰色：未染色</span>
+    </div>
+  );
+}
+
+function GraphCanvas({ step }) {
+  const W = 520, H = 400;
+  const colors = step.colors || DEFAULT_STATE.colors;
+  const current = step.current;
+  const trial = step.trialColor;
+  const conflictEdge = step.conflictEdge ? step.conflictEdge.slice().sort((a,b)=>a-b).join('-') : null;
+
+  function edgeKey(a,b) { return [a,b].sort((x,y)=>x-y).join('-'); }
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{borderRadius:10,display:'block',maxWidth:'100%'}}>
+      <defs>
+        <linearGradient id="graphBg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0c1425"/>
+          <stop offset="100%" stopColor="#080e1a"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <rect width={W} height={H} fill="url(#graphBg)" rx={10}/>
+      <text x={W/2} y={24} fill="#e2e8f0" fontSize={13} fontWeight="700" textAnchor="middle">地图抽象为图：相邻区域颜色必须不同</text>
+
+      {EDGES.map(([a,b], i) => {
+        const k = edgeKey(a,b);
+        const activeConflict = conflictEdge === k;
+        const va = VERTICES[a], vb = VERTICES[b];
+        const bothColored = colors[a] !== -1 && colors[b] !== -1;
+        const sameBad = bothColored && colors[a] === colors[b];
+        return (
+          <line key={i}
+            x1={va.x} y1={va.y} x2={vb.x} y2={vb.y}
+            stroke={activeConflict || sameBad ? '#ef4444' : '#365170'}
+            strokeWidth={activeConflict || sameBad ? 3 : 1.15}
+            opacity={activeConflict || sameBad ? 1 : 0.52}
+            strokeDasharray={activeConflict ? '6,4' : '0'}
+            filter={activeConflict ? 'url(#glow)' : 'none'}
+          />
+        );
+      })}
+
+      {VERTICES.map(v => {
+        const realColor = colors[v.id];
+        const isCurrent = current === v.id;
+        const fill = realColor === -1 ? '#1f334d' : COLORS[realColor].css;
+        const previewFill = isCurrent && trial !== null && realColor === -1 ? COLORS[trial].css : fill;
+        const r = isCurrent ? 20 : 17;
+        return (
+          <g key={v.id}>
+            {isCurrent && <circle cx={v.x} cy={v.y} r={31} fill={trial !== null ? COLORS[trial].soft : 'rgba(96,165,250,0.15)'} stroke={trial !== null ? COLORS[trial].css : '#60a5fa'} strokeWidth={1.5} strokeDasharray="6,4" />}
+            <circle cx={v.x} cy={v.y} r={r} fill={previewFill} stroke={isCurrent ? '#f8fafc' : '#94a3b8'} strokeWidth={isCurrent ? 2.5 : 1.4} opacity={realColor === -1 && !(isCurrent && trial !== null) ? 0.92 : 1}/>
+            <text x={v.x} y={v.y+4} textAnchor="middle" fill="white" fontSize="13" fontWeight="800">{v.name}</text>
+            <text x={v.x} y={v.y+35} textAnchor="middle" fill="#94a3b8" fontSize="10">
+              deg={ADJ[v.id].length}
+            </text>
+          </g>
+        );
+      })}
+
+      <g transform="translate(18,342)">
+        <rect width="230" height="42" rx="8" fill="rgba(11,17,32,0.72)" stroke="#1e3a5f"/>
+        <text x="12" y="18" fill="#94a3b8" fontSize="11">K4 子图：A-B-C-D 两两相邻</text>
+        <text x="12" y="34" fill="#60a5fa" fontSize="11" fontWeight="700">因此至少需要 4 种颜色</text>
+      </g>
+    </svg>
+  );
+}
+
+function DomainPanel({ step }) {
+  const domains = step.domains || DEFAULT_STATE.domains;
+  const colors = step.colors || DEFAULT_STATE.colors;
+  const removedSet = new Set((step.removed || []).map(r => `${r.v}-${r.removed}`));
+
+  return (
+    <div className="card" style={{padding:16, marginBottom:0}}>
+      <div className="card-header" style={{marginBottom:10}}><div className="dot" style={{background:'var(--cyan)'}}/>颜色域 Domains</div>
+      <div>
+        {VERTICES.map(v => {
+          const assigned = colors[v.id] !== -1;
+          const d = domains[v.id] || [];
+          return (
+            <div className="domain-row" key={v.id}>
+              <div style={{fontSize:12,color: assigned ? COLORS[colors[v.id]].css : '#cbd5e1', fontWeight:700}}>
+                {v.name}{assigned ? '✓' : ''}
+              </div>
+              <div>
+                {COLORS.map(c => {
+                  const available = d.includes(c.id);
+                  const removed = removedSet.has(`${v.id}-${c.id}`);
+                  const opacity = available ? 1 : 0.18;
+                  return (
+                    <span key={c.id}
+                      className="chip"
+                      title={`${v.name}-${c.name}`}
+                      style={{
+                        background:c.css,
+                        opacity,
+                        outline: removed ? '2px solid #f59e0b' : 'none',
+                        boxShadow: removed ? '0 0 14px rgba(245,158,11,0.45)' : 'none'
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{fontSize:11,color:'var(--text3)',marginTop:8}}>
+        空心/淡色表示该颜色已不可选；橙色描边表示本步骤染色后刚从邻居候选域中消失。
+      </div>
+    </div>
+  );
+}
+
+function StatCards({ stats }) {
+  return (
+    <div className="metric-grid">
+      <div className="metric"><div className="label">递归调用</div><div className="value" style={{color:'#60a5fa'}}>{stats.calls}</div></div>
+      <div className="metric"><div className="label">颜色尝试</div><div className="value" style={{color:'#fbbf24'}}>{stats.tries}</div></div>
+      <div className="metric"><div className="label">冲突剪枝</div><div className="value" style={{color:'#fca5a5'}}>{stats.conflictPrunes}</div></div>
+      <div className="metric"><div className="label">回溯次数</div><div className="value" style={{color:'#c084fc'}}>{stats.backtracks}</div></div>
+    </div>
+  );
+}
+
+function Player({ mode }) {
+  const solver = SOLVERS[mode];
+  const steps = solver.steps.length ? solver.steps : [DEFAULT_STATE];
+  const strategy = STRATEGIES[mode];
+  const [stepIndex, setStepIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const step = steps[stepIndex] || DEFAULT_STATE;
+
+  useEffect(() => { setStepIndex(0); setPlaying(false); }, [mode]);
+
+  useEffect(() => {
+    if (!playing) return;
+    if (stepIndex >= steps.length - 1) { setPlaying(false); return; }
+    const speed = mode === 'fixed' ? 260 : 520;
+    const t = setTimeout(() => setStepIndex(i => Math.min(steps.length - 1, i + 1)), speed);
+    return () => clearTimeout(t);
+  }, [playing, stepIndex, mode, steps.length]);
+
+  const phaseColor = {
+    init:'#60a5fa', call:'#3b82f6', select:'#a855f7', try:'#f59e0b',
+    prune:'#ef4444', assign:'#22c55e', backtrack:'#a855f7', done:'#22c55e', fail:'#ef4444'
+  };
+  const phaseLabel = {
+    init:'初始化', call:'进入递归', select:'选择顶点', try:'尝试颜色',
+    prune:'冲突剪枝', assign:'选择', backtrack:'回溯', done:'完成', fail:'失败返回'
+  };
+  const pc = phaseColor[step.phase] || strategy.accent;
+
+  return (
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <span style={{color:'var(--text3)',fontSize:12,whiteSpace:'nowrap'}}>{stepIndex+1} / {steps.length}</span>
+        <div className="progress-bar"><div className="progress-fill" style={{width:`${(stepIndex+1)/steps.length*100}%`, background:`linear-gradient(90deg, ${strategy.accent}, #60a5fa)`}}/></div>
+        <span className="phase-badge" style={{background:pc+'18',color:pc,border:`1px solid ${pc}44`}}>{phaseLabel[step.phase] || '执行中'}</span>
+      </div>
+
+      <div className="flex-row">
+        <div><CodePanel code={CODE[mode]} hl={step.hl || []} label={strategy.file}/></div>
+        <div>
+          <GraphCanvas step={step}/>
+          <ColorLegend/>
+        </div>
+      </div>
+
+      <div className="demo-controls" style={{marginTop:14, marginBottom:10}}>
+        <button className="demo-btn" onClick={()=>{setStepIndex(0);setPlaying(false);}} disabled={stepIndex===0}>⏮ 重置</button>
+        <button className="demo-btn" onClick={()=>{setStepIndex(Math.max(0,stepIndex-1));setPlaying(false);}} disabled={stepIndex===0}>◀ 上一步</button>
+        <button className={`demo-btn ${playing?'danger':'primary'}`} onClick={()=>setPlaying(!playing)}>
+          {playing?'⏸ 暂停':'▶ 播放'}
+        </button>
+        <button className="demo-btn" onClick={()=>{setStepIndex(Math.min(steps.length-1,stepIndex+1));setPlaying(false);}} disabled={stepIndex===steps.length-1}>下一步 ▶</button>
+        <button className="demo-btn" onClick={()=>{setStepIndex(steps.length-1);setPlaying(false);}} disabled={stepIndex===steps.length-1}>⏭ 结果</button>
+      </div>
+
+      <div className="info-box">
+        <h3 style={{fontSize:15,fontWeight:700,marginBottom:6,color:pc}}>{step.title}</h3>
+        <p style={{color:'var(--text2)',fontSize:13,lineHeight:'20px'}}>{step.desc}</p>
+        <StatCards stats={step.stats || DEFAULT_STATE.stats}/>
+        <div style={{marginTop:10}}>
+          <span style={{fontSize:11,color:'var(--text3)',fontWeight:600}}>调用栈 / 状态日志</span>
+          <div className="call-stack">
+            {(step.stack || []).map((c,i)=><div key={i}>{c}</div>)}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-row" style={{alignItems:'stretch', marginTop:14}}>
+        <DomainPanel step={step}/>
+        <div className="card" style={{padding:16, marginBottom:0}}>
+          <div className="card-header"><div className="dot" style={{background:strategy.accent}}/>当前策略说明</div>
+          <div className="small">
+            <p><strong style={{color:strategy.accent}}>{strategy.name}</strong></p>
+            <p style={{marginTop:6}}>{strategy.desc}</p>
+            <p style={{marginTop:8}}>顶点顺序：<span style={{color:'#e2e8f0'}}>{solver.order.map(i=>VERTICES[i].name).join(' → ')}</span></p>
+            <p className="muted" style={{marginTop:8}}>说明：演示默认在找到第一个合法 4 着色后停止，因此指标反映“搜索到第一个解”的代价。</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+function StrategyCards() {
+  const items = [
+    {key:'fixed', color:'#ef4444', title:'① 普通回溯', lines:['固定顶点顺序', '依次尝试 4 种颜色', '只做相邻冲突剪枝'], cost:'实现最简单，但搜索树最大'},
+    {key:'degree', color:'#a855f7', title:'② 度启发式', lines:['按顶点度数从高到低', '先染约束最多的顶点', '更早暴露冲突'], cost:'排序开销低，通常更快'},
+    {key:'mrv', color:'#22c55e', title:'③ MRV', lines:['每步计算剩余合法颜色', '优先选择最难染的顶点', '符合 Fail First 原则'], cost:'动态选择，剪枝更主动'},
+    {key:'combo', color:'#06b6d4', title:'④ 组合优化', lines:['MRV 先选颜色域最小', '并列时选度数最大', '动态约束 + 结构约束'], cost:'本示例中搜索最稳定'},
+  ];
+  return (
+    <div className="flex-row">
+      {items.map(item => (
+        <div key={item.key} className="card" style={{borderColor:item.color+'55'}}>
+          <div className="card-header"><div className="dot" style={{background:item.color}}/>{item.title}</div>
+          <div className="small">
+            {item.lines.map((l,i)=><p key={i}>• {l}</p>)}
+            <p style={{marginTop:10,color:item.color,fontWeight:700}}>{item.cost}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FlowDiagram() {
+  const W = 680, H = 215;
+  const boxes = [
+    {x:20, color:'#3b82f6', title:'选择顶点', desc:['普通 / 度启发式', 'MRV / 组合优化']},
+    {x:190, color:'#f59e0b', title:'尝试颜色', desc:['使用 4 种颜色', '红、蓝、绿、黄']},
+    {x:360, color:'#ef4444', title:'冲突剪枝', desc:['检查已染色邻居', '相邻同色立即跳过']},
+    {x:530, color:'#22c55e', title:'递归/回溯', desc:['合法则进入下一层', '失败则撤销选择']},
+  ];
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{display:'block',maxWidth:'100%'}}>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#4b5e7e"/>
+        </marker>
+      </defs>
+      <rect width={W} height={H} fill="#080e1a" rx={10}/>
+      {boxes.map((b,i)=>(
+        <g key={b.title}>
+          <rect x={b.x} y={30} width={130} height={130} rx={10} fill="rgba(255,255,255,0.02)" stroke={b.color+'55'} strokeWidth="1.5"/>
+          <rect x={b.x} y={30} width={130} height={34} rx={10} fill={b.color+'18'}/>
+          <text x={b.x+65} y={52} fill={b.color} fontSize="13" fontWeight="800" textAnchor="middle">{b.title}</text>
+          {b.desc.map((d,j)=><text key={j} x={b.x+65} y={90+j*24} fill="#94a3b8" fontSize="12" textAnchor="middle">{d}</text>)}
+          {i < boxes.length-1 && <line x1={b.x+130} y1={95} x2={b.x+168} y2={95} stroke="#4b5e7e" strokeWidth="2" markerEnd="url(#arrow)"/>}
+        </g>
+      ))}
+      <path d="M595,165 C595,202 85,202 85,165" fill="none" stroke="#334155" strokeWidth="1.5" strokeDasharray="6,5" markerEnd="url(#arrow)"/>
+      <text x={340} y={198} fill="#64748b" fontSize="11" textAnchor="middle">回溯后继续尝试其他颜色 / 其他分支</text>
+    </svg>
+  );
+}
+
+function EfficiencyTable() {
+  const rows = Object.keys(STRATEGIES).map(k => {
+    const s = STRATEGIES[k], m = SOLVERS[k].finalStats;
+    return { key:k, name:s.name, color:s.accent, calls:m.calls, tries:m.tries, conflicts:m.conflictPrunes, backs:m.backtracks };
+  });
+  const maxTries = Math.max(...rows.map(r=>r.tries));
+  return (
+    <div>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>策略</th>
+            <th>递归调用</th>
+            <th>颜色尝试</th>
+            <th>冲突剪枝</th>
+            <th>回溯次数</th>
+            <th>相对尝试量</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.key}>
+              <td style={{fontWeight:700,color:r.color}}>{r.name}</td>
+              <td>{r.calls}</td>
+              <td>{r.tries}</td>
+              <td>{r.conflicts}</td>
+              <td>{r.backs}</td>
+              <td style={{minWidth:150}}>
+                <div className="bar-shell">
+                  <div className="bar-fill" style={{width:`${r.tries/maxTries*100}%`, background:r.color}}/>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p style={{fontSize:12,color:'var(--text3)',marginTop:10}}>
+        * 表中数据由页面内置的同一张 8 顶点、22 边示例图实时生成；“颜色尝试”和“回溯次数”越少，说明顶点选择策略越有效。
+      </p>
+    </div>
+  );
+}
+
+function EfficiencyChart() {
+  const rows = Object.keys(STRATEGIES).map(k => ({ key:k, name:STRATEGIES[k].short, color:STRATEGIES[k].accent, v:SOLVERS[k].finalStats.tries }));
+  const W=650, H=320, pad=52;
+  const maxV = Math.max(...rows.map(r=>r.v)) * 1.12;
+  const bw = 72;
+  const gap = 62;
+  const sx = i => pad + 55 + i*(bw+gap);
+  const sy = v => H - pad - (v/maxV)*(H-2*pad-10);
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{display:'block',maxWidth:'100%'}}>
+      <rect width={W} height={H} fill="#080e1a" rx={10}/>
+      <text x={W/2} y="26" fill="#e2e8f0" fontSize="13" fontWeight="700" textAnchor="middle">剪枝策略颜色尝试次数对比</text>
+      {[0,50,100,150,200,250].map(v=>(
+        <g key={v}>
+          <line x1={pad} y1={sy(v)} x2={W-pad} y2={sy(v)} stroke="#152238" strokeWidth="1"/>
+          <text x={pad-8} y={sy(v)+4} fill="#3a4d6b" fontSize="9" textAnchor="end">{v}</text>
+        </g>
+      ))}
+      {rows.map((r,i) => {
+        const x = sx(i), y = sy(r.v), h = H - pad - y;
+        return (
+          <g key={r.key}>
+            <rect x={x} y={y} width={bw} height={h} rx="7" fill={r.color} opacity="0.85"/>
+            <text x={x+bw/2} y={y-8} fill={r.color} fontSize="12" fontWeight="800" textAnchor="middle">{r.v}</text>
+            <text x={x+bw/2} y={H-pad+22} fill="#94a3b8" fontSize="11" textAnchor="middle">{r.name}</text>
+          </g>
+        );
+      })}
+      <text x="16" y={H/2} fill="#3a4d6b" fontSize="10" textAnchor="middle" transform={`rotate(-90,16,${H/2})`}>颜色尝试次数</text>
+    </svg>
+  );
+}
+
+function PseudocodeProof() {
+  return (
+    <div className="flex-row">
+      <div className="card">
+        <div className="card-header"><div className="dot" style={{background:'#60a5fa'}}/>正确性验证思路</div>
+        <div className="small">
+          <p><strong style={{color:'#93c5fd'}}>目标：</strong>对任意边 (u, v)，都满足 color[u] ≠ color[v]。</p>
+          <p style={{marginTop:8}}>回溯法枚举颜色赋值树；每次赋值前用 isSafe 检查排除必然冲突的分支，MRV 则通过候选颜色域大小决定优先搜索哪个顶点。</p>
+          <p style={{marginTop:8}}>因为剪枝只删除“必然冲突”的分支，不会删除合法解所在分支，所以若存在 4 着色，回溯最终能找到。</p>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-header"><div className="dot" style={{background:'#22c55e'}}/>本示例结果</div>
+        <div className="small">
+          <p>示例图包含 A、B、C、D 构成的 K4 完全子图，因此 1~3 色一定不够。</p>
+          <p style={{marginTop:8}}>页面使用 4 种颜色进行搜索，最终会得到一组合法着色：</p>
+          <div style={{background:'var(--bg)',padding:'10px 14px',borderRadius:6,marginTop:10,fontFamily:'monospace',color:'#e2e8f0'}}>
+            A=红, B=蓝, C=绿, D=黄, E=黄, F=绿, G=蓝, H=红
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [mode, setMode] = useState('fixed');
+  const [activeNav, setActiveNav] = useState('overview');
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['overview','algorithm','strategies','demo','efficiency','summary'];
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const el = document.getElementById(sections[i]);
+        if (el && el.getBoundingClientRect().top < 120) {
+          setActiveNav(sections[i]);
+          break;
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <div>
+      <nav className="top-nav">
+        <div className="logo">🎨 图着色回溯</div>
+        <div className="nav-links">
+          {[
+            {id:'overview', label:'实验概述'},
+            {id:'algorithm', label:'算法原理'},
+            {id:'strategies', label:'剪枝策略'},
+            {id:'demo', label:'动态演示'},
+            {id:'efficiency', label:'效率分析'},
+            {id:'summary', label:'实验总结'},
+          ].map(item => (
+            <a key={item.id} href={`#${item.id}`} className={activeNav===item.id?'active':''}>{item.label}</a>
+          ))}
+        </div>
+      </nav>
+
+      <div className="hero" id="overview">
+        <h1>回溯法求解图着色问题</h1>
+        <div className="meta">实验三 · 算法设计与分析 · 4 色着色与剪枝策略可视化</div>
+        <div className="tags">
+          <span className="tag">回溯法</span>
+          <span className="tag">图着色</span>
+          <span className="tag">四颜色</span>
+          <span className="tag">剪枝策略</span>
+          <span className="tag">代码可视化</span>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-title"><span className="num">1</span>实验概述</div>
+        <div className="section-subtitle">将地图区域抽象为图，用 4 种颜色对顶点染色，并分析不同剪枝策略的效率。</div>
+        <div className="flex-row">
+          <div className="card">
+            <div className="card-header"><div className="dot" style={{background:'#22c55e'}}/>实验目的</div>
+            <div className="small">
+              <p>1. 理解图着色问题与地图着色问题的对应关系。</p>
+              <p>2. 掌握回溯法“选择—约束—递归—撤销”的通用模板。</p>
+              <p>3. 实现并比较四种策略：普通回溯、度启发式、最少剩余值优先（MRV）和组合优化（MRV + 度启发式）。</p>
+              <p>4. 通过动画观察代码执行、顶点选择、颜色冲突、候选颜色域变化与回溯过程。</p>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header"><div className="dot" style={{background:'#3b82f6'}}/>示例图数据</div>
+            <div className="small">
+              <p>顶点数 |V| = <strong style={{color:'#e2e8f0'}}>8</strong>，边数 |E| = <strong style={{color:'#e2e8f0'}}>22</strong>。</p>
+              <p>颜色集合 C = &#123; 红、蓝、绿、黄 &#125;。</p>
+              <p>约束：若两个顶点之间有边，则它们不能使用同一种颜色。</p>
+              <p style={{marginTop:8}}>
+                {['A-B-C-D 构成 K4', '至少 4 色', '22 条邻接边', '动态图形展示'].map(t => <span key={t} className="pill">{t}</span>)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section" id="algorithm">
+        <div className="section-title"><span className="num">2</span>算法原理</div>
+        <div className="section-subtitle">回溯搜索树中，每一次染色都是一个选择；普通冲突检测负责剪枝，度启发式和 MRV 负责更聪明地选择下一个顶点。</div>
+        <div className="card">
+          <div className="card-header"><div className="dot" style={{background:'#06b6d4'}}/>回溯求解流程</div>
+          <div style={{display:'flex',justifyContent:'center',paddingTop:8}}><FlowDiagram/></div>
+        </div>
+        <PseudocodeProof/>
+      </div>
+
+      <div className="section" id="strategies">
+        <div className="section-title"><span className="num">3</span>剪枝策略</div>
+        <div className="section-subtitle">同一个图、同样 4 种颜色，不同的顶点选择与剪枝策略会显著改变搜索树规模。</div>
+        <StrategyCards/>
+      </div>
+
+      <div className="section" id="demo">
+        <div className="section-title"><span className="num">4</span>动态演示</div>
+        <div className="section-subtitle">选择策略后，左侧代码会按执行步骤高亮，右侧图会同步展示当前顶点、试探颜色、冲突边和候选颜色域变化。</div>
+
+        <div className="mode-switch">
+          {Object.keys(STRATEGIES).map(k => {
+            const s = STRATEGIES[k];
+            return (
+              <button key={k} className={`mode-btn ${mode===k?s.className:''}`} onClick={()=>setMode(k)}>
+                {s.short}
+              </button>
+            );
+          })}
+        </div>
+
+        <Player mode={mode}/>
+      </div>
+
+      <div className="section" id="efficiency">
+        <div className="section-title"><span className="num">5</span>效率分析</div>
+        <div className="section-subtitle">用递归调用数、颜色尝试次数、剪枝次数和回溯次数衡量不同策略的搜索效率。</div>
+
+        <div className="card">
+          <div className="card-header"><div className="dot" style={{background:'#f59e0b'}}/>剪枝效率对比表</div>
+          <EfficiencyTable/>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><div className="dot" style={{background:'#06b6d4'}}/>可视化柱状图</div>
+          <div style={{display:'flex',justifyContent:'center'}}><EfficiencyChart/></div>
+        </div>
+
+        <div className="flex-row">
+          <div className="card">
+            <div className="card-header"><div className="dot" style={{background:'#ef4444'}}/>为什么普通回溯慢？</div>
+            <div className="small">
+              <p>普通回溯先处理 E、G、F、H 这些约束相对分散的顶点，早期看似合法，但到 A、B、C、D 的 K4 子图时才集中爆发冲突，导致大量深层回溯。</p>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header"><div className="dot" style={{background:'#22c55e'}}/>为什么 MRV / 组合优化更快？</div>
+            <div className="small">
+              <p>MRV 总是优先选择剩余可选颜色最少的顶点，把“最可能失败”的选择提前处理；组合优化在 MRV 并列时再用度启发式，进一步优先处理约束更强的顶点。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section" id="summary">
+        <div className="section-title"><span className="num">6</span>实验总结</div>
+        <div className="section-subtitle">实验结论与可扩展方向</div>
+        <div className="card">
+          <div className="small" style={{lineHeight:'26px'}}>
+            <p>✅ 回溯法能系统枚举图着色解空间，并在发现冲突时撤销选择。</p>
+            <p>✅ 剪枝不会改变正确性，只会跳过必然不可能产生合法解的分支。</p>
+            <p>✅ 度启发式、MRV 与组合优化都属于“先处理难点”的思想，能显著减少搜索树规模。</p>
+            <p>✅ 前向检查通过维护颜色域，把未来的失败提前暴露，是回溯算法中常用的约束传播技术。</p>
+            <p>💡 可扩展：加入 LCV（最少约束值）、AC-3 弧一致性、随机图规模实验，以及对 le450_5a / le450_15b / le450_25a 数据集的结果统计。</p>
+          </div>
+        </div>
+        <div style={{textAlign:'center',padding:'30px 0 60px',color:'var(--text3)',fontSize:13}}>
+          <p>— 实验三 · 回溯法求解图着色问题 · 完 —</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
